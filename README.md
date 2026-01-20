@@ -10,12 +10,11 @@ Numerical framework for simulating Very High Energy (VHE) gamma-ray propagation 
 ## Table of Contents
 1. [Overview](#overview)
 2. [Physical Framework](#physical-framework)
-3. [Scientific Validation](#scientific-validation)
-4. [Installation](#installation)
-5. [Execution](#execution)
-6. [Repository Structure](#repository-structure)
-7. [Propagation Workflow](#propagation-workflow)
-8. [Citation](#citation)
+3. [Installation](#installation)
+4. [Execution](#execution)
+5. [Repository Structure](#repository-structure)
+6. [Propagation Workflow](#propagation-workflow)
+7. [Citation](#citation)
 
 ---
 
@@ -36,17 +35,6 @@ The simulator quantifies the **Anomalous Transparency** effect, where photon-ALP
     * **IGM:** Turbulent field implemented via a stochastic cellular approach.
     * **GMF:** Full Jansson-Farrar (2012) implementation, including Disk, Halo, and X-field components.
 * **EBL Opacity:** Integration of the Dominguez et al. (2011) EBL model for survival probability calculations.
-
----
-
-## Scientific Validation
-Simulations conducted with $g_{a\gamma} = 5 \times 10^{-10} \text{ GeV}^{-1}$ and $m_a = 1 \text{ neV}$ achieved the following benchmarks:
-
-| Metric | Value | Significance |
-| :--- | :--- | :--- |
-| **Maximum Boost Factor** | **10.58x** | Amplification at $E > 8$ TeV for $D > 800$ Mpc. |
-| **Spectral Hardening** | **$\Delta\Gamma = 0.51$** | Measured shift from $\Gamma_{obs} = 4.05$ (EBL) to $3.54$ (ALPs). |
-| **Unitarity** | $1.00 \pm 10^{-6}$ | Probability conservation at low energies ($E < 0.1$ TeV). |
 
 ---
 
