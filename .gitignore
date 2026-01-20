@@ -1,0 +1,16 @@
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Data and results
+results/*.csv
+results/*.png
+data/source_catalog.csv
+data/ebl_models/*.out
+data/ebl_models/*.fits
+
+# Logs and backups
+backups/
+*.log
+.DS_Store
