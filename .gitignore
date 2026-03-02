@@ -1,0 +1,19 @@
+# Ambientes Virtuais
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos de Sistema e IDEs
+.DS_Store
+.vscode/
+.idea/
+
+# Resultados da Simulacao
+results/
+*.csv
+*.png
+*.pdf
