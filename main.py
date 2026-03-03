@@ -26,11 +26,11 @@ def main():
     sources_df = pd.read_csv(catalog_path)
     print(f"[INFO] Loaded {len(sources_df)} sources from catalog.")
     
-    if 'Luminosity' in sources_df.columns:
-        total_l = sources_df['Luminosity'].sum()
+    if 'Ledd' in sources_df.columns:
+        total_l = sources_df['Ledd'].sum()
         target_events = config["simulation_parameters"]["total_events"]
         
-        sources_df['Number of Events'] = (sources_df['Luminosity'] / total_l * target_events).astype(int)
+        sources_df['Number of Events'] = (sources_df['Ledd'] / total_l * target_events).astype(int)
         
         # Makes sure no source gets 0 events due to rounding
         sources_df['Number of Events'] = sources_df['Number of Events'].clip(lower=1)
@@ -38,7 +38,7 @@ def main():
         real_total = sources_df['Number of Events'].sum()
         print(f"[INFO] Events distributed proportionally. Total planned: {real_total}")
     else:
-        print("[WARNING] Column 'Luminosity' not found. Using catalog defaults.")
+        print("[WARNING] Column 'Ledd' not found. Using catalog defaults.")
 
     # Initialize and run simulation
     manager = SimulationManager(config)
