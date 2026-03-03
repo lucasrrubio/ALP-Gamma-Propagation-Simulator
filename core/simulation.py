@@ -18,9 +18,7 @@ def run_source_wrapper(args):
     source_data, config = args
     
     # Define Number of Events based on source luminosity
-    n_events = source_data.get('Number of Events', 
-                               max(1, int(config["simulation_parameters"]["total_events"] / 
-                                          config["simulation_parameters"]["n_sources"])))
+    n_events = int(source_data.get('Number of Events', 1))
 
     m_a_sq = config["physics_parameters"]["m_a_eV"]**2
     g_ag = config["physics_parameters"]["g_ag_GeV_inv"] * GEV_INV_TO_INV_EV
