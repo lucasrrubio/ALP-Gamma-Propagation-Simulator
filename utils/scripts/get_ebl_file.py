@@ -3,38 +3,38 @@ import shutil
 import sys
 import ebltable.ebl_from_model as ebl
 
-# 1. Localizar onde o ebltable foi instalado
+# 1. Locate where ebltable was installed
 package_dir = os.path.dirname(ebl.__file__)
 data_dir_source = os.path.join(package_dir, 'data')
 
-# Nome do arquivo alvo
+# Target filename
 filename = 'tau_dominguez11.fits'
 source_file = os.path.join(data_dir_source, filename)
 
-# Destino no seu projeto
+# Destination in project
 dest_dir = "data/ebl_models"
 dest_file = os.path.join(dest_dir, filename)
 
-print(f"--- Extrator de Arquivos EBL ---")
-print(f"Procurando em: {source_file}")
+print(f"--- EBL File Extractor ---")
+print(f"Searching in: {source_file}")
 
 if os.path.exists(source_file):
-    # Criar pasta de destino se não existir
+    # Create destination folder if it doesn't exist
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
         
-    # Copiar
+    # Copy file
     shutil.copy2(source_file, dest_file)
-    print(f"\n[SUCESSO] Arquivo copiado para: {dest_file}")
-    print("Agora você pode rodar o utils/ebl.py normalmente!")
+    print(f"\n[SUCCESS] File copied to: {dest_file}")
+    print("Now you can run utils/ebl.py normally!")
 else:
-    print(f"\n[ERRO] Arquivo não encontrado no pacote instalado.")
-    print(f"Conteúdo da pasta data do pacote: {os.listdir(data_dir_source)}")
+    print(f"\n[ERROR] File not found in the installed package.")
+    print(f"Package data folder content: {os.listdir(data_dir_source)}")
     
-    # Plano B: Tentar encontrar qualquer arquivo .fits que pareça ser o do Dominguez
-    print("\nTentando busca inteligente...")
+    # Plan B: Try to find any .fits file that looks like Dominguez
+    print("\n Trying smart search..")
     for f in os.listdir(data_dir_source):
         if 'dominguez' in f.lower() and 'tau' in f.lower():
-            print(f"Achado alternativo: {f}")
+            print(f"Alternative find: {f}")
             shutil.copy2(os.path.join(data_dir_source, f), os.path.join(dest_dir, f))
-            print(f"Copiado como substituto. Atualize o utils/ebl.py com o nome: {f}")
+            print(f"Copied as substitute. Update utils/ebl.py with the name: {f}")
