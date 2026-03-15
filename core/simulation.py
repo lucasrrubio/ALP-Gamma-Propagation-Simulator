@@ -44,8 +44,8 @@ def run_source_wrapper(args):
     energies_tev = (E_min**(1-gamma) + r_vals*(E_max**(1-gamma) - E_min**(1-gamma)))**(1/(1-gamma))
     
     # Step configurations
-    dz_agn_inv_ev = 1e-8 * MPC_TO_INV_EV
-    dz_agn_meters = 1e-8 * 3.0857e22
+    dz_agn_inv_ev = 1e-10 * MPC_TO_INV_EV
+    dz_agn_meters = 1e-10 * 3.0857e22
     dz_igm_inv_ev = config["egmf_model"]["coherence_length_mpc"] * MPC_TO_INV_EV
     
     # Region C Step Config
