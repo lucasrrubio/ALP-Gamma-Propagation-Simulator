@@ -7,10 +7,15 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 
 from core.magnetic_fields import AGNJetField, IGMTurbulentField, GMFJanssonFarrar
-from core.propagation_engine import get_mixing_matrix, evolve_state
+from core.propagation_engine import (
+    get_mixing_matrix,
+    get_mixing_matrix_with_absorption,
+    evolve_state,
+    evolve_state_non_hermitian,
+)
 from utils.constants import (
     MPC_TO_INV_EV, GEV_INV_TO_INV_EV, 
-    G_CONST_SI, C_LIGHT_SI, M_SUN_KG, KPC_TO_EV_INV
+    G_CONST_SI, C_LIGHT_SI, M_SUN_KG, KPC_TO_EV_INV, METER_TO_INV_EV
 )
 from utils.ebl import EBLModel
 
@@ -44,8 +49,6 @@ def run_source_wrapper(args):
     energies_tev = (E_min**(1-gamma) + r_vals*(E_max**(1-gamma) - E_min**(1-gamma)))**(1/(1-gamma))
     
     # Step configurations
-    dz_agn_inv_ev = 1e-10 * MPC_TO_INV_EV
-    dz_agn_meters = 1e-10 * 3.0857e22
     dz_igm_inv_ev = config["egmf_model"]["coherence_length_mpc"] * MPC_TO_INV_EV
     
     # Region C Step Config
@@ -55,28 +58,45 @@ def run_source_wrapper(args):
     # AGN Field Setup
     rg = (G_CONST_SI * source_data.get('Mbh', 1e8) * M_SUN_KG) / (C_LIGHT_SI**2)
     agn_field = AGNJetField(B_H_gauss=source_data.get('Bh', 100.0), R_H_meter=rg)
-    
+
+    # Critério físico: dz << L_osc = π / (g_ag * B / 2).
+    DZ_AGN_FRACTION = 0.01
+    dz_agn_meters = DZ_AGN_FRACTION * rg
+    dz_agn_inv_ev = dz_agn_meters * METER_TO_INV_EV 
+
+    r_start, r_end = 100.0 * rg, 1000.0 * rg
+    n_agn_steps_expected = int((r_end - r_start) / dz_agn_meters)
+
     events = []
     for energy_tev in energies_tev:
         energy_ev = energy_tev * 1e12
         state = np.array([1.0, 0.0, 0.0], dtype=np.complex128)
-        
+
         # Region A: AGN Jet
-        r_curr, max_jet = 100.0 * rg, 1000.0 * rg
-        while r_curr < max_jet:
+        # r_start = 100 rg, r_end = 1000 rg 
+        r_curr = r_start
+        while r_curr < r_end:
             Bx, By = agn_field.get_field_vector(r_curr)
-            state = evolve_state(state, get_mixing_matrix(energy_ev, Bx, By, g_ag, m_a_sq), dz_agn_inv_ev)
+            state = evolve_state(
+                state,
+                get_mixing_matrix(energy_ev, Bx, By, g_ag, m_a_sq),
+                dz_agn_inv_ev
+            )
             r_curr += dz_agn_meters
 
-        # Region B: IGM
+        # Region B: IGM com absorção EBL coerente
         dist_mpc = source_data.get('Distance', 100.0)
-        tau = ebl_model.get_tau(energy_tev, dist_mpc)
+        tau_total = ebl_model.get_tau(energy_tev, dist_mpc)
         n_steps = max(1, int(dist_mpc / config["egmf_model"]["coherence_length_mpc"]))
-        att = np.exp(-(tau/n_steps)/2.0)
+
+        gamma_per_step = (tau_total / n_steps) / dz_igm_inv_ev  # [eV]
+
         for _ in range(n_steps):
             Bx, By = igm_field.get_field_vector(new_cell=True)
-            state = evolve_state(state, get_mixing_matrix(energy_ev, Bx, By, g_ag, m_a_sq), dz_igm_inv_ev)
-            state[0:2] *= att
+            M_eff = get_mixing_matrix_with_absorption(
+                energy_ev, Bx, By, g_ag, m_a_sq, gamma_per_step
+            )
+            state = evolve_state_non_hermitian(state, M_eff, dz_igm_inv_ev)
 
         # Region C: Milky Way (GMF)
         d_kpc = 20.0
@@ -104,7 +124,7 @@ def run_source_wrapper(args):
             'prob_survival': float(np.abs(state[0])**2 + np.abs(state[1])**2),
             'prob_alp': float(np.abs(state[2])**2),
             'dist_mpc': float(dist_mpc),
-            'tau_total': float(tau)
+            'tau_total': float(tau_total)
         })
     return events
 

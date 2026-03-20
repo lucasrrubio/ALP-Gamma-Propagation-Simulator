@@ -1,5 +1,5 @@
 import numpy as np
-from utils.constants import NG_TO_EV2
+from utils.constants import G_TO_EV2, NG_TO_EV2
 
 class IGMTurbulentField:
     """
@@ -26,7 +26,7 @@ class AGNJetField:
     Models the AGN Jet Magnetic Field with radial power-law decay.
     """
     def __init__(self, B_H_gauss, R_H_meter, n_index=2.0):
-        self.B_H_ev2 = (B_H_gauss * 1e9) * NG_TO_EV2
+        self.B_H_ev2 = B_H_gauss * G_TO_EV2
         self.R_H = R_H_meter
         self.n = n_index
         self.psi = np.random.uniform(0, 2 * np.pi)
