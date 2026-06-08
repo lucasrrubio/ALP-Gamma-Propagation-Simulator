@@ -7,6 +7,7 @@ MPC_TO_M = 3.08567758e22
 GEV_INV_TO_INV_EV = 1.0e-9
 EV_TO_GEV = 1.0e-9
 KPC_TO_EV_INV = MPC_TO_INV_EV / 1e3   
+CM_TO_INV_EV = METER_TO_INV_EV * 1e-2 
 
 # Physical Constants (SI Reference)
 M_SUN_KG = 1.98847e30 
