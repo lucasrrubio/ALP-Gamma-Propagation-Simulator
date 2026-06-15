@@ -66,8 +66,9 @@ def run_source_wrapper(args):
     dz_gmf_inv_ev = dz_gmf_kpc * KPC_TO_EV_INV
 
     # AGN field setup — parameters from HBL catalog (Tavecchio et al. 2010)
-    B0_gauss = source_data.get("B0_G",  0.138)    # field at emission region [G]
-    r0_cm    = source_data.get("r0_cm", 1.09e17)  # emission region distance [cm]
+    B0_gauss = source_data.get("B0_G",    0.138)    # field at emission region [G]
+    r0_cm    = source_data.get("r0_cm",   1.09e17)  # emission region distance [cm]
+    delta_D  = source_data.get("delta_D", 25.0)     # Doppler factor of the jet
 
     agn_field = AGNJetField(B0_gauss=B0_gauss, r0_cm=r0_cm)
 
@@ -82,16 +83,20 @@ def run_source_wrapper(args):
 
     events = []
     for energy_tev in energies_tev:
-        energy_ev = energy_tev * 1e12
+        energy_ev = energy_tev * 1e12               # observer-frame energy
+        energy_jet_ev = energy_ev / delta_D          # jet comoving-frame energy
         state     = np.array([1.0, 0.0, 0.0], dtype=np.complex128)
 
         # ── Region A: AGN jet ─────────────────────────────────────────────────
+        # Mixing occurs in the jet comoving frame, where the B field is defined.
+        # The photon energy is Doppler-shifted: E_jet = E_obs / delta_D.
+        # The IGM and GMF blocks below use the observer-frame energy_ev.
         r_curr_cm = r_start_cm
         while r_curr_cm < r_end_cm:
             Bx, By = agn_field.get_field_vector(r_curr_cm)
             state  = evolve_state(
                 state,
-                get_mixing_matrix(energy_ev, Bx, By, g_ag, m_a_sq),
+                get_mixing_matrix(energy_jet_ev, Bx, By, g_ag, m_a_sq),
                 dz_agn_inv_ev,
             )
             r_curr_cm += dz_agn_cm

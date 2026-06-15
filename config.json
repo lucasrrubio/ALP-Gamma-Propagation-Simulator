@@ -12,14 +12,16 @@
     "source_generation": {
         "agn_B0_log_mean_G": -0.8609,
         "agn_B0_log_std_G": 0.4316,
-        "agn_r0_log_mean_cm": 17.125,
-        "agn_r0_log_std_cm": 0.2921,
+        "agn_R_log_mean_cm": 15.6941,
+        "agn_R_log_std_cm": 0.2767,
+        "agn_delta_log_mean": 1.4309,
+        "agn_delta_log_std": 0.0993,
         "agn_flux_log_mean": -8.3695,
         "agn_flux_log_std": 0.5855,
-        "agn_b_field_falloff_n": 1.0,
+        "agn_b_field_falloff_n": 1,
         "agn_energy_gamma": 2.15,
         "min_energy_tev": 0.1,
-        "max_energy_tev": 20
+        "max_energy_tev": 20.0
     },
     "egmf_model": {
         "B_field_nG": 1.0,
