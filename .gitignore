@@ -17,3 +17,25 @@ results/
 *.csv
 *.png
 *.pdf
+
+# Diagnostic and investigation scripts (not part of the simulator)
+debug_*.py
+find_*.py
+inspect_*.py
+check_cmb.py
+compare_matrix.py
+extract_matrix.py
+set_deltas.py
+test_chi_b3.py
+test_optionA.py
+patch_*.py
+
+# Test suites and benchmarks (kept local for now)
+test_suite*.py
+benchmark_*.py
+benchmark_*.json
+
+# Backups and helper files
+*.bak
+*.bak2
+commit_message.txt
