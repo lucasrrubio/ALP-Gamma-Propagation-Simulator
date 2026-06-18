@@ -18,6 +18,16 @@ import numpy as np
 
 from utils.constants import G_TO_EV2
 
+# Photon-photon dispersion off the CMB bath (Dobrynina, Kartavtsev & Raffelt
+# 2015, Phys. Rev. D 91, 083003). The ambient CMB photon gas gives the
+# propagating VHE photon a real refractive-index correction chi, adding an
+# isotropic term Delta_chi(E) = CHI_CMB * E to the photon diagonal. It is
+# linear in E and independent of the magnetic field, so it shifts the
+# photon-ALP oscillation phase, dominating over the coupling term above ~1 TeV
+# along the IGM path. CHI_CMB = (k_B T_CMB)^4 * pi^2/15 / m_e^4 * 44 alpha^2/135
+# evaluated at the z=0 CMB temperature (matching gammaALPs' Delta_CMB).
+CHI_CMB = 5.0963e-43
+
 _ALPHA_FS      = 1.0 / 137.035999            # fine-structure constant
 _B_CRIT_GAUSS  = 4.414e13                     # Schwinger critical field [G]
 _B_CRIT_EV2    = _B_CRIT_GAUSS * G_TO_EV2     # critical field [eV^2]
@@ -45,7 +55,7 @@ def _delta_qed_base(energy_ev, B_T_ev2):
 
 
 def _build_lab_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-                      qed, extra_photon_diag):
+                      qed, extra_photon_diag, include_chi=True):
     """
     Build the 3x3 mixing matrix in the lab frame (x, y, ALP) basis.
 
@@ -92,27 +102,32 @@ def _build_lab_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
     # Rotate to lab frame: M_lab = R · M_aligned · R^T
     M_lab = R @ M_aligned @ R.T
 
-    # Add isotropic photon-diagonal term (absorption) after rotation
-    if extra_photon_diag != 0.0:
-        M_lab[0, 0] += extra_photon_diag
-        M_lab[1, 1] += extra_photon_diag
+    # Add isotropic photon-diagonal terms (CMB dispersion + absorption) after
+    # rotation. Delta_chi is real; absorption is imaginary.
+    photon_diag = extra_photon_diag
+    if include_chi:
+        photon_diag = photon_diag + CHI_CMB * energy_ev
+    if photon_diag != 0.0:
+        M_lab[0, 0] += photon_diag
+        M_lab[1, 1] += photon_diag
 
     return M_lab
 
 
 def get_mixing_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-                      include_qed=True):
+                      include_qed=True, include_chi=True):
     """
     Constructs the 3x3 photon-ALP mixing matrix (M) in the lab frame.
     Units: [eV]
 
     Includes QED vacuum birefringence with the correct parallel (3.5) and
     perpendicular (2.0) polarization factors, implemented via the B-aligned
-    basis and rotated to the lab frame.
+    basis and rotated to the lab frame, plus the isotropic CMB photon-photon
+    dispersion term Delta_chi = CHI_CMB * E (Dobrynina et al. 2015).
     """
     return _build_lab_matrix(
         energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-        qed=include_qed, extra_photon_diag=0.0
+        qed=include_qed, extra_photon_diag=0.0, include_chi=include_chi
     )
 
 
@@ -121,14 +136,16 @@ _unitarity_violation_count = 0
 
 def get_mixing_matrix_with_absorption(energy_ev, Bx_ev2, By_ev2,
                                        g_ag_inv_ev, m_a_sq_ev2,
-                                       gamma_absorb_ev, include_qed=True):
+                                       gamma_absorb_ev, include_qed=True,
+                                       include_chi=True):
     """
-    Mixing matrix including EBL absorption (non-Hermitian).
+    Mixing matrix including EBL absorption (non-Hermitian) and the CMB
+    photon-photon dispersion term (real, isotropic).
     """
     abs_diag = -0.5j * gamma_absorb_ev
     return _build_lab_matrix(
         energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-        qed=include_qed, extra_photon_diag=abs_diag
+        qed=include_qed, extra_photon_diag=abs_diag, include_chi=include_chi
     )
 
 
