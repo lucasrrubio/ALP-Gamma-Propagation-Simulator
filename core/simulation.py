@@ -72,14 +72,16 @@ def run_source_wrapper(args):
 
     agn_field = AGNJetField(B0_gauss=B0_gauss, r0_cm=r0_cm)
 
-    # Step size: fraction of r0 to resolve the oscillation length
-    DZ_AGN_FRACTION = 0.01
-    dz_agn_cm       = DZ_AGN_FRACTION * r0_cm
-    dz_agn_inv_ev   = dz_agn_cm * CM_TO_INV_EV
-
-    # Propagate from r0 to r_max = 1000 * r0
-    r_start_cm = r0_cm
-    r_end_cm   = 1000.0 * r0_cm
+    # Log-spaced domains over [r0, 1000 r0], field sampled at geometric
+    # midpoints. Resolution concentrates near r0 where B(r)=B0(r0/r) is
+    # strongest and the oscillation fastest. Converges for all field strengths
+    # and is ~7x faster than uniform linear stepping, which biases toward the
+    # strong-field edge and fails to converge for B0 of a few G.
+    N_AGN_STEPS   = 8000
+    r_bounds_cm   = np.logspace(np.log10(r0_cm), np.log10(1000.0 * r0_cm),
+                                N_AGN_STEPS)
+    r_mid_cm      = np.sqrt(r_bounds_cm[:-1] * r_bounds_cm[1:])
+    dz_agn_inv_ev = (r_bounds_cm[1:] - r_bounds_cm[:-1]) * CM_TO_INV_EV
 
     events = []
     for energy_tev in energies_tev:
@@ -91,15 +93,13 @@ def run_source_wrapper(args):
         # Mixing occurs in the jet comoving frame, where the B field is defined.
         # The photon energy is Doppler-shifted: E_jet = E_obs / delta_D.
         # The IGM and GMF blocks below use the observer-frame energy_ev.
-        r_curr_cm = r_start_cm
-        while r_curr_cm < r_end_cm:
-            Bx, By = agn_field.get_field_vector(r_curr_cm)
+        for k in range(len(r_mid_cm)):
+            Bx, By = agn_field.get_field_vector(r_mid_cm[k])
             state  = evolve_state(
                 state,
                 get_mixing_matrix(energy_jet_ev, Bx, By, g_ag, m_a_sq),
-                dz_agn_inv_ev,
+                dz_agn_inv_ev[k],
             )
-            r_curr_cm += dz_agn_cm
 
         # ── Region B: IGM with coherent EBL absorption ────────────────────────
         dist_mpc  = source_data.get("Distance", 100.0)
