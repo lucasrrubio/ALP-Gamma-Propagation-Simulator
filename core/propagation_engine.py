@@ -70,7 +70,7 @@ def _build_lab_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
 
     # Photon-ALP coupling uses the full transverse field magnitude
     Dag = 0.5 * g_ag_inv_ev * B_T_ev2
-    Da  = m_a_sq_ev2 / (2.0 * energy_ev)
+    Da  = -m_a_sq_ev2 / (2.0 * energy_ev)
 
     if qed and B_T_ev2 > 0.0:
         DQED  = _delta_qed_base(energy_ev, B_T_ev2)
