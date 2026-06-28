@@ -55,7 +55,7 @@ def _delta_qed_base(energy_ev, B_T_ev2):
 
 
 def _build_lab_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-                      qed, extra_photon_diag, include_chi=True):
+                      qed, extra_photon_diag, include_chi=True, chi_scale=1.0):
     """
     Build the 3x3 mixing matrix in the lab frame (x, y, ALP) basis.
 
@@ -70,6 +70,12 @@ def _build_lab_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
 
     # Photon-ALP coupling uses the full transverse field magnitude
     Dag = 0.5 * g_ag_inv_ev * B_T_ev2
+    # ALP mass diagonal. The sign is NEGATIVE, opposite to the photon dispersion
+    # terms (QED, CMB), so that the photon-ALP diagonal gap is
+    # (Delta_photon - Delta_a) = ... + m_a^2/2E, i.e. mass and photon dispersion
+    # ADD to widen the gap (matching gammaALPs). Only matters when m_a^2/2E is
+    # comparable to the photon terms (intermediate-mass ALPs at VHE); a positive
+    # sign here silently cancels against Delta_chi/Delta_QED in that regime.
     Da  = -m_a_sq_ev2 / (2.0 * energy_ev)
 
     if qed and B_T_ev2 > 0.0:
@@ -106,7 +112,9 @@ def _build_lab_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
     # rotation. Delta_chi is real; absorption is imaginary.
     photon_diag = extra_photon_diag
     if include_chi:
-        photon_diag = photon_diag + CHI_CMB * energy_ev
+        # chi_scale carries the cosmological CMB-density evolution (1+z)^4 in the
+        # IGM; default 1.0 leaves the local (non-cosmological) term unchanged.
+        photon_diag = photon_diag + CHI_CMB * energy_ev * chi_scale
     if photon_diag != 0.0:
         M_lab[0, 0] += photon_diag
         M_lab[1, 1] += photon_diag
@@ -115,7 +123,7 @@ def _build_lab_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
 
 
 def get_mixing_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-                      include_qed=True, include_chi=True):
+                      include_qed=True, include_chi=True, chi_scale=1.0):
     """
     Constructs the 3x3 photon-ALP mixing matrix (M) in the lab frame.
     Units: [eV]
@@ -127,7 +135,8 @@ def get_mixing_matrix(energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
     """
     return _build_lab_matrix(
         energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-        qed=include_qed, extra_photon_diag=0.0, include_chi=include_chi
+        qed=include_qed, extra_photon_diag=0.0, include_chi=include_chi,
+        chi_scale=chi_scale
     )
 
 
@@ -137,7 +146,7 @@ _unitarity_violation_count = 0
 def get_mixing_matrix_with_absorption(energy_ev, Bx_ev2, By_ev2,
                                        g_ag_inv_ev, m_a_sq_ev2,
                                        gamma_absorb_ev, include_qed=True,
-                                       include_chi=True):
+                                       include_chi=True, chi_scale=1.0):
     """
     Mixing matrix including EBL absorption (non-Hermitian) and the CMB
     photon-photon dispersion term (real, isotropic).
@@ -145,7 +154,8 @@ def get_mixing_matrix_with_absorption(energy_ev, Bx_ev2, By_ev2,
     abs_diag = -0.5j * gamma_absorb_ev
     return _build_lab_matrix(
         energy_ev, Bx_ev2, By_ev2, g_ag_inv_ev, m_a_sq_ev2,
-        qed=include_qed, extra_photon_diag=abs_diag, include_chi=include_chi
+        qed=include_qed, extra_photon_diag=abs_diag, include_chi=include_chi,
+        chi_scale=chi_scale
     )
 
 
