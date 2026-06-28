@@ -39,3 +39,5 @@ benchmark_*.json
 *.bak
 *.bak2
 commit_message.txt
+validation/
+_archive_old/
