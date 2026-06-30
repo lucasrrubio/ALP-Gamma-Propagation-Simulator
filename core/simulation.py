@@ -19,6 +19,7 @@ from utils.constants import (
     KPC_TO_EV_INV,
     CM_TO_INV_EV,
 )
+from utils.cosmology import cosmo_cohlength, redshift_from_distance, HUBBLE_DIST_MPC
 from utils.ebl import EBLModel
 
 
@@ -58,8 +59,32 @@ def run_source_wrapper(args):
         + r_vals * (E_max ** (1 - gamma) - E_min ** (1 - gamma))
     ) ** (1 / (1 - gamma))
 
-    # IGM step size
-    dz_igm_inv_ev = config["egmf_model"]["coherence_length_mpc"] * MPC_TO_INV_EV
+    # IGM configuration
+    L0_mpc        = config["egmf_model"]["coherence_length_mpc"]
+    dz_igm_inv_ev = L0_mpc * MPC_TO_INV_EV
+    dist_mpc      = source_data.get("Distance", 100.0)
+
+    # ── IGM treatment selector ────────────────────────────────────────────────
+    # cosmological=False (default, legacy): uniform slab at z=0 -- n_steps cells
+    #   of equal comoving length, uniform EBL absorption, fixed field/energy.
+    # cosmological=True: redshift-resolved IGM. The source redshift is taken from
+    #   the Hubble-flow distance (z = dist * H0/c, the same convention the EBL
+    #   table uses), and the line of sight is split into luminosity-distance
+    #   cells (gammaALPs convention). Per cell at local redshift z': field
+    #   B0(1+z')^2, photon energy E(1+z'), CMB term (1+z')^4, proper length
+    #   dL=L0/(1+z'), and the differential EBL optical depth. Cells are applied
+    #   in the native observer->source order (validated against gammaALPs).
+    cosmological = config["egmf_model"].get("cosmological", False)
+    if cosmological:
+        z_src                = redshift_from_distance(dist_mpc)
+        dL_cosmo, z_step      = cosmo_cohlength(z_src, L0_mpc)   # z asc obs->src
+        z_mean                = z_step[:-1]      # cell local redshift (low edge)
+        z_far                 = z_step[1:]       # cell upper-edge redshift
+        opz                   = 1.0 + z_mean
+        bscale_cosmo          = opz ** 2         # B(z') = B0 (1+z')^2
+        chiscale_cosmo        = opz ** 4         # CMB energy density (1+z')^4
+        dz_cosmo              = dL_cosmo * MPC_TO_INV_EV   # proper cell lengths
+        n_cells_cosmo         = len(z_mean)
 
     # GMF step configuration
     dz_gmf_kpc    = 0.005
@@ -102,18 +127,41 @@ def run_source_wrapper(args):
             )
 
         # ── Region B: IGM with coherent EBL absorption ────────────────────────
-        dist_mpc  = source_data.get("Distance", 100.0)
-        tau_total = ebl_model.get_tau(energy_tev, dist_mpc)
-        n_steps   = max(1, int(dist_mpc / config["egmf_model"]["coherence_length_mpc"]))
+        tau_total = ebl_model.get_tau(energy_tev, dist_mpc)   # EBL baseline
 
-        gamma_per_step = (tau_total / n_steps) / dz_igm_inv_ev  # [eV]
+        if cosmological:
+            # Per-cell absorption rate from the difference of the cumulative EBL
+            # optical depth at the cell's redshift edges (gammaALPs convention),
+            # so absorption is concentrated where it physically occurs. The EBL
+            # table maps a redshift to distance internally, so we pass z*c/H0.
+            tau_far  = np.array([ebl_model.get_tau(energy_tev, zz * HUBBLE_DIST_MPC)
+                                 for zz in z_far])
+            tau_near = np.array([ebl_model.get_tau(energy_tev, zz * HUBBLE_DIST_MPC)
+                                 for zz in z_mean])
+            gamma_cell = np.maximum(tau_far - tau_near, 0.0) / dz_cosmo
 
-        for _ in range(n_steps):
-            Bx, By = igm_field.get_field_vector(new_cell=True)
-            M_eff  = get_mixing_matrix_with_absorption(
-                energy_ev, Bx, By, g_ag, m_a_sq, gamma_per_step
-            )
-            state = evolve_state_non_hermitian(state, M_eff, dz_igm_inv_ev)
+            for c in range(n_cells_cosmo):
+                Bx, By = igm_field.get_field_vector(new_cell=True)
+                Bx *= bscale_cosmo[c]
+                By *= bscale_cosmo[c]
+                # Passing the comoving energy E(1+z') and scaled field makes the
+                # QED ((1+z')^5) and ALP-mass ((1+z')^-1) scalings automatic;
+                # chi_scale carries the CMB (1+z')^4 explicitly.
+                M_eff = get_mixing_matrix_with_absorption(
+                    energy_ev * opz[c], Bx, By, g_ag, m_a_sq,
+                    gamma_cell[c], chi_scale=chiscale_cosmo[c],
+                )
+                state = evolve_state_non_hermitian(state, M_eff, dz_cosmo[c])
+        else:
+            # Legacy uniform slab at z = 0 (unchanged).
+            n_steps        = max(1, int(dist_mpc / L0_mpc))
+            gamma_per_step = (tau_total / n_steps) / dz_igm_inv_ev  # [eV]
+            for _ in range(n_steps):
+                Bx, By = igm_field.get_field_vector(new_cell=True)
+                M_eff  = get_mixing_matrix_with_absorption(
+                    energy_ev, Bx, By, g_ag, m_a_sq, gamma_per_step
+                )
+                state = evolve_state_non_hermitian(state, M_eff, dz_igm_inv_ev)
 
         # ── Region C: Milky Way (GMF) ─────────────────────────────────────────
         d_kpc    = 20.0

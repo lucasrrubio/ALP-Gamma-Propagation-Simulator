@@ -25,7 +25,8 @@
     },
     "egmf_model": {
         "B_field_nG": 1.0,
-        "coherence_length_mpc": 1.0
+        "coherence_length_mpc": 1.0,
+        "cosmological": true
     },
     "file_paths": {
         "source_catalog_output": "data/source_catalog.csv",
