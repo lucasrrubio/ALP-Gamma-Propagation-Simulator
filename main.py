@@ -5,7 +5,7 @@ from core.simulation import SimulationManager
 
 def main():
     print("=== ALP Propagation Simulation Pipeline ===")
-    
+
     config_path = "config.json"
     if not os.path.exists(config_path):
         print(f"[ERROR] Configuration file not found at {config_path}")
@@ -25,20 +25,16 @@ def main():
 
     sources_df = pd.read_csv(catalog_path)
     print(f"[INFO] Loaded {len(sources_df)} sources from catalog.")
-    
-    if 'Ledd' in sources_df.columns:
-        total_l = sources_df['Ledd'].sum()
-        target_events = config["simulation_parameters"]["total_events"]
-        
-        sources_df['Number of Events'] = (sources_df['Ledd'] / total_l * target_events).astype(int)
-        
-        # Makes sure no source gets 0 events due to rounding
-        sources_df['Number of Events'] = sources_df['Number of Events'].clip(lower=1)
-        
-        real_total = sources_df['Number of Events'].sum()
-        print(f"[INFO] Events distributed proportionally. Total planned: {real_total}")
-    else:
-        print("[WARNING] Column 'Ledd' not found. Using catalog defaults.")
+
+    # Event allocation is performed at catalog-generation time, weighted by the
+    # Fermi-LAT F1000 flux (see utils/generate_source_catalog.py). The catalog's
+    # 'Number of Events' column is used directly here.
+    if "Number of Events" not in sources_df.columns:
+        print("[ERROR] Catalog missing 'Number of Events' column. "
+              "Regenerate it with utils/generate_source_catalog.py.")
+        return
+    print(f"[INFO] Total events from catalog (F1000-weighted): "
+          f"{int(sources_df['Number of Events'].sum())}")
 
     # Initialize and run simulation
     manager = SimulationManager(config)
